@@ -3,6 +3,7 @@
 //! This extension does not talk to `AeroSpace` or `SketchyBar` directly. It
 //! turns provider events into generic `SketchyBar` message requests.
 
+#![forbid(unsafe_code)]
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
 #![warn(clippy::cargo)]

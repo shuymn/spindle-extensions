@@ -1,13 +1,14 @@
 [package]
 name = "spindle-sketchybar-extension"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 description = "SketchyBar capability extension for spindle."
-license = "MIT"
-repository = "https://github.com/shuymn/spindle-extensions"
+license.workspace = true
+repository.workspace = true
 readme = "README.md"
 keywords = ["sketchybar", "macos", "spindle", "automation"]
 categories = ["command-line-utilities"]
+links = "sketchybar_mach"
 
 [[bin]]
 name = "spindle-sketchybar"

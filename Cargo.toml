@@ -11,6 +11,24 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/shuymn/spindle-extensions"
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+expect_used = "deny"
+infinite_loop = "deny"
+map_err_ignore = "deny"
+panic = "deny"
+str_to_string = "deny"
+implicit_clone = "deny"
+todo = "deny"
+unimplemented = "deny"
+unwrap_used = "deny"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+
 [workspace.dependencies]
 anyhow = "1.0.102"
 cc = "1.2.49"

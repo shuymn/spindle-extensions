@@ -54,6 +54,7 @@ Read this file before writing or modifying any Rust code in this repository.
 
 ## Unsafe Policy
 
+- Workspace `Cargo.toml` sets `unsafe_code = "forbid"`. Crates inherit that by default and add `#![forbid(unsafe_code)]` in `lib.rs` and `main.rs`; SketchyBar uses a crate-local `unsafe_code = "deny"` exception for its FFI bridge.
 - `unsafe_code` is forbidden except for the SketchyBar Mach IPC FFI bridge.
 - Keep unsafe localized to the bridge module, add a nearby safety comment, and expose only a safe public API.
 - Do not use unsafe to fight the borrow checker.
