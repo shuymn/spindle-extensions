@@ -1,16 +1,16 @@
 [package]
-name = "spindle-workspace-indicator-extension"
+name = "spindle-aerospace-extension"
 version = "0.1.0"
 edition = "2024"
-description = "Workspace indicator workflow extension for spindle."
+description = "AeroSpace capability extension for spindle."
 license = "MIT"
-repository = "https://github.com/shuymn/spindle"
+repository = "https://github.com/shuymn/spindle-extensions"
 readme = "README.md"
-keywords = ["workspace", "sketchybar", "aerospace", "spindle"]
+keywords = ["aerospace", "macos", "spindle", "automation"]
 categories = ["command-line-utilities"]
 
 [[bin]]
-name = "spindle-workspace-indicator"
+name = "spindle-aerospace"
 path = "src/main.rs"
 
 [dependencies]

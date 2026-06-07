@@ -1,16 +1,16 @@
 [package]
-name = "spindle-aerospace-extension"
+name = "spindle-sketchybar-extension"
 version = "0.1.0"
 edition = "2024"
-description = "AeroSpace capability extension for spindle."
+description = "SketchyBar capability extension for spindle."
 license = "MIT"
-repository = "https://github.com/shuymn/spindle"
+repository = "https://github.com/shuymn/spindle-extensions"
 readme = "README.md"
-keywords = ["aerospace", "macos", "spindle", "automation"]
+keywords = ["sketchybar", "macos", "spindle", "automation"]
 categories = ["command-line-utilities"]
 
 [[bin]]
-name = "spindle-aerospace"
+name = "spindle-sketchybar"
 path = "src/main.rs"
 
 [dependencies]
@@ -21,11 +21,14 @@ serde_json = { workspace = true }
 spindle-extension-sdk = { workspace = true }
 thiserror = { workspace = true }
 
-[dev-dependencies]
-tempfile = { workspace = true }
+[build-dependencies]
+cc = { workspace = true }
 
 [lints.rust]
-unsafe_code = "forbid"
+# SketchyBar UI updates are latency-sensitive. This crate uses a tiny, isolated
+# Mach IPC FFI bridge instead of spawning the `sketchybar` CLI for each message.
+# Keep all Rust unsafe confined to that bridge module.
+unsafe_code = "deny"
 unused_must_use = "deny"
 
 [lints.clippy]
