@@ -3,8 +3,6 @@
 #![warn(clippy::nursery)]
 #![warn(clippy::cargo)]
 
-use std::{thread, time::Duration};
-
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 use serde::Deserialize;
@@ -13,11 +11,10 @@ use spindle_aerospace_extension::{
     focus_workspace, read_layout, read_mode, read_workspace_snapshot,
 };
 use spindle_extension_sdk::{
-    ActionContext, ActionHandler, ActionInvocation, ActionOutput, ActionOutputEvent, EventContext,
+    ActionContext, ActionHandler, ActionInvocation, ActionOutput, ActionOutputEvent,
     ExtensionRegistration, RegistrationAction, serve_stdio_jsonl_actions,
 };
 
-const DEFAULT_SETTLE_MS: u64 = 50;
 const EVENT_WORKSPACE_CHANGED: &str = "aerospace.workspace.changed";
 const EVENT_FOCUS_CHANGED: &str = "aerospace.focus.changed";
 const EVENT_MONITOR_CHANGED: &str = "aerospace.monitor.changed";
@@ -55,14 +52,14 @@ impl Cli {
                     ACTION_WORKSPACE_FOCUS,
                     json!({ "workspace": &args.workspace }),
                 );
-                focus_workspace_action(args.workspace, &context)?;
+                let workspace = focus_workspace_action(args.workspace, &context)?;
+                print_output(&workspace_snapshot_output(Some(&workspace))?)?;
             }
             CliCommand::EmitWorkspaceSnapshot(args) => {
                 let context = cli_context(
                     ACTION_WORKSPACE_SNAPSHOT,
                     json!({
                         "focused_workspace": args.focused_workspace,
-                        "settle_ms": args.settle_ms,
                     }),
                 );
                 print_output(&workspace_snapshot_action(&context)?)?;
@@ -91,8 +88,11 @@ const ACTION_HANDLERS: &[ActionHandler<anyhow::Error>] = &[
 ];
 
 fn focus_workspace_host_action(context: &ActionContext) -> Result<ActionOutput> {
-    focus_workspace_action(None, context)?;
-    Ok(ActionOutput::empty())
+    let workspace = focus_workspace_action(None, context)?;
+    workspace_snapshot_output(Some(&workspace)).or_else(|error| {
+        eprintln!("aerospace: workspace focus applied but snapshot read failed: {error:#}");
+        Ok(ActionOutput::empty())
+    })
 }
 
 fn mode_snapshot_host_action(_context: &ActionContext) -> Result<ActionOutput> {
@@ -127,8 +127,6 @@ struct FocusWorkspaceArgs {
 struct WorkspaceSnapshotArgs {
     #[arg(long, value_name = "WORKSPACE")]
     focused_workspace: Option<String>,
-    #[arg(long, value_name = "MS")]
-    settle_ms: Option<u64>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -140,7 +138,6 @@ struct FocusWorkspaceActionArgs {
 #[derive(Debug, Default, Deserialize)]
 struct WorkspaceSnapshotActionArgs {
     focused_workspace: Option<String>,
-    settle_ms: Option<u64>,
 }
 
 fn resolve_workspace(
@@ -153,20 +150,20 @@ fn resolve_workspace(
         .context("workspace was not provided")
 }
 
-fn focus_workspace_action(explicit: Option<String>, context: &ActionContext) -> Result<()> {
+fn focus_workspace_action(explicit: Option<String>, context: &ActionContext) -> Result<String> {
     let action_args = context.args::<FocusWorkspaceActionArgs>()?;
     let workspace = resolve_workspace(explicit, &action_args)?;
     focus_workspace(&workspace)?;
-    Ok(())
+    Ok(workspace)
 }
 
 fn workspace_snapshot_action(context: &ActionContext) -> Result<ActionOutput> {
     let action_args = context.args::<WorkspaceSnapshotActionArgs>()?;
-    maybe_settle(
-        context.event(),
-        action_args.settle_ms.unwrap_or(DEFAULT_SETTLE_MS),
-    );
-    let snapshot = read_workspace_snapshot(action_args.focused_workspace.as_deref())?;
+    workspace_snapshot_output(action_args.focused_workspace.as_deref())
+}
+
+fn workspace_snapshot_output(focused_workspace: Option<&str>) -> Result<ActionOutput> {
+    let snapshot = read_workspace_snapshot(focused_workspace)?;
     Ok(ActionOutput::event(
         ActionOutputEvent::new(ACTION_WORKSPACE_SNAPSHOT)
             .with_data(serde_json::to_value(snapshot)?),
@@ -186,12 +183,6 @@ fn layout_snapshot_action() -> Result<ActionOutput> {
         ActionOutputEvent::new(ACTION_LAYOUT_SNAPSHOT)
             .with_data(json!({ "window_info": window_info })),
     ))
-}
-
-fn maybe_settle(event: Option<&EventContext>, settle_ms: u64) {
-    if matches!(event.map(EventContext::kind), Some(EVENT_WORKSPACE_CHANGED)) && settle_ms > 0 {
-        thread::sleep(Duration::from_millis(settle_ms));
-    }
 }
 
 fn print_output(output: &ActionOutput) -> Result<()> {
