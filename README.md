@@ -8,6 +8,7 @@ This repository holds provider and workflow extensions under `extensions/<name>/
 ## Extensions
 
 - `extensions/aerospace/` — AeroSpace IPC, workspace/mode/layout snapshots, workspace focus
+- `extensions/clock/` — Clock label to SketchyBar message workflow
 - `extensions/sketchybar/` — SketchyBar Mach IPC and generic message send
 - `extensions/workspace-indicator/` — AeroSpace state to SketchyBar message workflow
 
@@ -17,6 +18,7 @@ This repository holds provider and workflow extensions under `extensions/<name>/
 spindle-extensions/
   extensions/
     aerospace/
+    clock/
     sketchybar/
     workspace-indicator/
 ```
@@ -46,6 +48,7 @@ task build:release
 Release binaries land in `target/release/`:
 
 - `spindle-aerospace`
+- `spindle-clock`
 - `spindle-sketchybar`
 - `spindle-workspace-indicator`
 

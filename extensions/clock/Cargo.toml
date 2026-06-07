@@ -1,0 +1,28 @@
+[package]
+name = "spindle-clock-extension"
+version = "0.1.0"
+edition.workspace = true
+description = "Clock label workflow extension for spindle."
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["clock", "sketchybar", "spindle"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "spindle-clock"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+spindle-extension-sdk = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+
+[lints]
+workspace = true
