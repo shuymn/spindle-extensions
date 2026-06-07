@@ -41,7 +41,31 @@ aerospace.workspace.changed / aerospace.monitor.changed
   -> sketchybar.message.send
 
 sketchybar.workspace.clicked -> aerospace.workspace.focus
+  -> aerospace.workspace.snapshot
+  -> workspace-indicator.workspaces.render
+  -> workspace-indicator.sketchybar.message.requested
+  -> sketchybar.message.send
 ```
+
+## Canonical surface
+
+Inspect runtime registration before writing route policy or downstream packager config:
+
+```sh
+spindle-workspace-indicator register | jq .
+spindle extension validate extensions/workspace-indicator/extension.json
+```
+
+Key names from this extension:
+
+| Kind | Name |
+|------|------|
+| produced event | `workspace-indicator.sketchybar.message.requested` |
+| action | `workspace-indicator.workspaces.schedule` |
+| action | `workspace-indicator.workspaces.render` |
+| action | `workspace-indicator.status.render` |
+
+Route policy must reference `workspace-indicator.sketchybar.message.requested`, not legacy names such as `workspace-indicator.rendered`.
 
 Obsolete scheduler generations are suppressed before invoking
 `aerospace.workspace.snapshot`, so obsolete workspace intents do not read
