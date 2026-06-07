@@ -343,6 +343,9 @@ fn ensure_output_surface(extension: Option<&ExtensionContext>) -> Result<()> {
 fn registration() -> ExtensionRegistration {
     ExtensionRegistration::new()
         .produce(OUTPUT_EVENT)
+        .capability(AEROSPACE_STATE_READ_CAPABILITY)
+        .capability(AEROSPACE_WINDOW_CONTROL_CAPABILITY)
+        .capability(SKETCHYBAR_UI_WRITE_CAPABILITY)
         .action(
             ACTION_SCHEDULE_WORKSPACES,
             RegistrationAction::new().capability(AEROSPACE_STATE_READ_CAPABILITY),
