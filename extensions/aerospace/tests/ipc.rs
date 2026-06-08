@@ -1,12 +1,14 @@
+mod common;
+
 use std::{
     cell::RefCell,
     collections::BTreeMap,
     io::{Read, Write},
     os::unix::net::UnixListener,
-    path::PathBuf,
     thread,
 };
 
+use common::test_socket_path;
 use serde_json::json;
 use spindle_aerospace_extension::{
     AerospaceClient, AerospaceError, AerospaceIpcClient, AerospaceResponse, focus_workspace_args,
@@ -72,12 +74,6 @@ impl AerospaceClient for FailingAerospace {
 
         Ok(AerospaceResponse::success(args.join("\n")))
     }
-}
-
-fn test_socket_path() -> anyhow::Result<(tempfile::TempDir, PathBuf)> {
-    let dir = tempfile::tempdir()?;
-    let path = dir.path().join("aerospace.sock");
-    Ok((dir, path))
 }
 
 #[test]

@@ -1,19 +1,16 @@
+mod common;
+
 use std::{
     io::{BufRead, BufReader, Read, Write},
     os::unix::net::UnixListener,
-    path::{Path, PathBuf},
+    path::Path,
     process::{Command, Stdio},
     thread,
     time::{Duration, Instant},
 };
 
+use common::test_socket_path;
 use serde_json::json;
-
-fn test_socket_path() -> anyhow::Result<(tempfile::TempDir, PathBuf)> {
-    let dir = tempfile::tempdir()?;
-    let path = dir.path().join("aerospace.sock");
-    Ok((dir, path))
-}
 
 fn aerospace_success_response(stdout: &str) -> anyhow::Result<String> {
     Ok(serde_json::to_string(&json!({
@@ -64,9 +61,9 @@ fn ensure_no_pending_connection(listener: &UnixListener) -> anyhow::Result<()> {
     result
 }
 
-fn read_host_response_line(stdout: impl Read) -> anyhow::Result<serde_json::Value> {
+fn read_host_response_line(reader: &mut impl BufRead) -> anyhow::Result<serde_json::Value> {
     let mut response_line = String::new();
-    BufReader::new(stdout).read_line(&mut response_line)?;
+    reader.read_line(&mut response_line)?;
     serde_json::from_str(&response_line).map_err(Into::into)
 }
 
@@ -98,11 +95,17 @@ fn run_host_focus(
         stdin,
         r#"{{"type":"invoke","invocation":{{"action":"aerospace.workspace.focus","args":{{"workspace":"2"}},"event":null,"extension":null}}}}"#
     )?;
+    stdin.flush()?;
+
+    let mut stdout = BufReader::new(stdout);
+    let response = read_host_response_line(&mut stdout)?;
+
     writeln!(stdin, r#"{{"type":"shutdown"}}"#)?;
     stdin.flush()?;
     drop(stdin);
 
-    let response = read_host_response_line(stdout)?;
+    // Consume the shutdown acknowledgement before closing stdout.
+    let _shutdown_ack = read_host_response_line(&mut stdout);
     let stderr = BufReader::new(stderr_pipe)
         .lines()
         .map_while(Result::ok)
