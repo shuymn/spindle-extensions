@@ -10,10 +10,8 @@ struct spindle_mach_message {
   mach_msg_ool_descriptor_t descriptor;
 };
 
-int32_t spindle_sketchybar_send(const char *bar_name,
-                                const uint8_t *message,
-                                uint32_t message_len) {
-  if (!bar_name || !message) {
+static kern_return_t lookup_bar_port(const char *bar_name, mach_port_t *port_out) {
+  if (!bar_name || !port_out) {
     return KERN_INVALID_ARGUMENT;
   }
 
@@ -26,8 +24,29 @@ int32_t spindle_sketchybar_send(const char *bar_name,
     return KERN_INVALID_ARGUMENT;
   }
 
+  return bootstrap_look_up(bootstrap_port, service_name, port_out);
+}
+
+int32_t spindle_sketchybar_probe(const char *bar_name) {
   mach_port_t port = MACH_PORT_NULL;
-  kern_return_t lookup = bootstrap_look_up(bootstrap_port, service_name, &port);
+  kern_return_t lookup = lookup_bar_port(bar_name, &port);
+  if (lookup != KERN_SUCCESS) {
+    return lookup;
+  }
+
+  mach_port_deallocate(mach_task_self(), port);
+  return KERN_SUCCESS;
+}
+
+int32_t spindle_sketchybar_send(const char *bar_name,
+                                const uint8_t *message,
+                                uint32_t message_len) {
+  if (!bar_name || !message) {
+    return KERN_INVALID_ARGUMENT;
+  }
+
+  mach_port_t port = MACH_PORT_NULL;
+  kern_return_t lookup = lookup_bar_port(bar_name, &port);
   if (lookup != KERN_SUCCESS) {
     return lookup;
   }

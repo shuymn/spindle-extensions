@@ -2,10 +2,7 @@
 #![warn(clippy::nursery)]
 #![warn(clippy::cargo)]
 
-use std::{
-    env, fs, io,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
@@ -14,7 +11,10 @@ use spindle_extension_sdk::{
     ActionContext, ActionHandler, ActionInvocation, ActionOutput, ExtensionRegistration,
     RegistrationAction, serve_stdio_jsonl_actions,
 };
-use spindle_sketchybar_extension::send_args;
+use spindle_sketchybar_extension::{
+    CachedMessageRequest, MachEndpointProbe, SketchybarMachClient, invalidate_cache,
+    send_cached_message,
+};
 
 const ACTION_SEND_MESSAGE: &str = "sketchybar.message.send";
 const EVENT_WORKSPACE_CLICKED: &str = "sketchybar.workspace.clicked";
@@ -44,11 +44,16 @@ impl Cli {
                 let context = cli_context(
                     ACTION_SEND_MESSAGE,
                     serde_json::json!({
+                        "state_dir": args.state_dir,
                         "cache_key": args.cache_key,
                         "cache_value": args.cache_value,
                     }),
                 );
-                send_message_action(args.state_dir, args.args, &context)?;
+                send_message_action(None, args.args, &context)?;
+            }
+            CliCommand::InvalidateCache(args) => {
+                invalidate_cache(args.state_dir, args.key.as_deref())
+                    .map_err(anyhow::Error::from)?;
             }
         }
         Ok(())
@@ -76,6 +81,8 @@ enum CliCommand {
     Register,
     /// Send raw `SketchyBar` command arguments.
     SendMessage(SendMessageArgs),
+    /// Delete write-cache entries used by `sketchybar.message.send`.
+    InvalidateCache(InvalidateCacheArgs),
 }
 
 #[derive(Debug, Args)]
@@ -90,10 +97,19 @@ struct SendMessageArgs {
     args: Vec<String>,
 }
 
+#[derive(Debug, Args)]
+struct InvalidateCacheArgs {
+    #[arg(long, value_name = "DIR")]
+    state_dir: Option<PathBuf>,
+    #[arg(long, value_name = "KEY")]
+    key: Option<String>,
+}
+
 #[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 struct SendMessageActionArgs {
     args: Vec<String>,
+    state_dir: Option<PathBuf>,
     cache_key: Option<String>,
     cache_value: Option<String>,
 }
@@ -119,85 +135,21 @@ fn send_message_action(
     context: &ActionContext,
 ) -> Result<()> {
     let action_args = context.args::<SendMessageActionArgs>()?;
+    let resolved_state_dir = action_args.state_dir.or(state_dir);
     let cache = action_args.cache_key.zip(action_args.cache_value);
     let sketchybar_args = resolve_message_args(cli_args, action_args.args)?;
-    send_message(state_dir, &sketchybar_args, cache.as_ref())?;
-    Ok(())
-}
-
-fn send_message(
-    state_dir: Option<PathBuf>,
-    args: &[String],
-    cache: Option<&(String, String)>,
-) -> Result<()> {
-    let Some((cache_key, cache_value)) = cache else {
-        send_args(args)?;
-        return Ok(());
-    };
-
-    validate_cache_key(cache_key)?;
-    let cache_path = resolve_state_dir(state_dir).join(format!("{cache_key}.state"));
-    if cache_is_current(&cache_path, cache_value)? {
-        return Ok(());
-    }
-
-    send_args(args)?;
-    write_cache(&cache_path, cache_value)?;
-    Ok(())
-}
-
-fn validate_cache_key(cache_key: &str) -> Result<()> {
-    if cache_key.trim().is_empty() {
-        anyhow::bail!("cache key must not be empty");
-    }
-    if cache_key
-        .chars()
-        .any(|character| character.is_control() || character == '/')
-    {
-        anyhow::bail!("cache key contains invalid characters: {cache_key:?}");
-    }
-    Ok(())
-}
-
-fn resolve_state_dir(explicit: Option<PathBuf>) -> PathBuf {
-    explicit.unwrap_or_else(default_state_dir)
-}
-
-fn default_state_dir() -> PathBuf {
-    env_path("SPINDLE_SKETCHYBAR_STATE_DIR")
-        .or_else(|| env_path("SPINDLE_WORKSPACE_INDICATOR_STATE_DIR"))
-        .or_else(|| env_path("AEROSPACE_STATE_DIR"))
-        .unwrap_or_else(|| tmp_dir().join("sketchybar-aerospace"))
-}
-
-fn env_path(name: &str) -> Option<PathBuf> {
-    env::var_os(name)
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
-}
-
-fn tmp_dir() -> PathBuf {
-    env::var_os("TMPDIR")
-        .filter(|value| !value.is_empty())
-        .map_or_else(|| Path::new("/tmp").to_path_buf(), PathBuf::from)
-}
-
-fn cache_is_current(path: &Path, value: &str) -> Result<bool> {
-    match fs::read_to_string(path) {
-        Ok(previous) => Ok(previous == value),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
-        Err(error) => Err(error.into()),
-    }
-}
-
-fn write_cache(path: &Path, value: &str) -> Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    let tmp_path = path.with_extension(format!("tmp.{}", std::process::id()));
-    fs::write(&tmp_path, value)?;
-    fs::rename(tmp_path, path)?;
+    let client = SketchybarMachClient::from_env();
+    send_cached_message(
+        &CachedMessageRequest {
+            state_dir: resolved_state_dir,
+            args: &sketchybar_args,
+            cache: cache.as_ref(),
+            bar_name: client.bar_name(),
+        },
+        &client,
+        &MachEndpointProbe,
+    )
+    .map_err(anyhow::Error::from)?;
     Ok(())
 }
 

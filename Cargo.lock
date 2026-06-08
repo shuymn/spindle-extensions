@@ -538,6 +538,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spindle-extension-sdk",
+ "tempfile",
  "thiserror",
 ]
 
