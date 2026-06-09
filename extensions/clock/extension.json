@@ -1,6 +1,5 @@
 {
   "id": "clock",
   "version": "0.1.0",
-  "entrypoint": "../../target/release/spindle-clock",
   "runtime": "stdio-jsonl"
 }

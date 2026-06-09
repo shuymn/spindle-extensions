@@ -47,7 +47,7 @@ Read this file before writing or modifying any Rust code in this repository.
 
 ## Extension Contracts
 
-- Keep manifest `entrypoint` values aligned with binary names and release output under `target/release/`.
+- Keep source manifests free of legacy `entrypoint` fields. Installable packages expose executables through `packages/<id>/bin/<id>`.
 - Runtime registration top-level capabilities declare only capabilities the extension provides/owns. Action and route capabilities are requirements/grants and must not be duplicated as provided capabilities unless this extension actually owns them.
 - `workspace-indicator` should not talk to providers directly; use spindle action invocation and continuation handles.
 - Provider extensions should keep external protocol code isolated and expose a small spindle surface.

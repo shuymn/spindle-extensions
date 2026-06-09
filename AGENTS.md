@@ -31,4 +31,5 @@
   - `cargo fmt --all`
   - `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`
 - After changing `Cargo.toml`, run `task build` or `cargo build --workspace --locked`.
-- Before installing manifests, run `task build:release`; manifest entrypoints resolve to `target/release/` binaries.
+- Before installing extension packages, run `task package`; package entrypoints are staged as `packages/<id>/bin/<id>`.
+- First-party desktop bootstrap should use `spindle bootstrap --extension-dir ./packages --trust-runtime`; do not add cross-extension policy artifacts.

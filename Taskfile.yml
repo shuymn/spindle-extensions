@@ -24,6 +24,58 @@ tasks:
     cmds:
       - cargo build --workspace --release --locked
 
+  package:
+    desc: Build installable extension package directories
+    summary: |
+      Builds release binaries and writes installable packages under packages/<id>/.
+    cmds:
+      - task: build:release
+      - |
+        set -eu
+        rm -rf packages
+        for extension_id in aerospace clock sketchybar workspace-indicator
+        do
+          install -d "packages/$extension_id/bin"
+          install -m 0644 "extensions/$extension_id/extension.json" \
+            "packages/$extension_id/extension.json"
+          install -m 0755 "target/release/spindle-$extension_id" \
+            "packages/$extension_id/bin/$extension_id"
+        done
+      - task: package:verify
+
+  package:verify:
+    desc: Verify installable extension package directories
+    summary: |
+      Verifies packages/<id>/ contains extension.json and executable bin/<id>.
+    cmds:
+      - |
+        set -eu
+        test -d packages
+        expected="aerospace clock sketchybar workspace-indicator"
+        for extension_id in $expected
+        do
+          manifest="packages/$extension_id/extension.json"
+          binary="packages/$extension_id/bin/$extension_id"
+          test -f "$manifest"
+          test -f "$binary"
+          test -x "$binary"
+          grep -q '"id": "'$extension_id'"' "$manifest"
+          grep -q '"runtime": "stdio-jsonl"' "$manifest"
+          if grep -q '"entrypoint"' "$manifest"; then
+            echo "$manifest must not contain legacy entrypoint" >&2
+            exit 1
+          fi
+        done
+        for package_dir in packages/*
+        do
+          test -d "$package_dir" || continue
+          package_name=${package_dir##*/}
+          case " $expected " in
+            *" $package_name "*) ;;
+            *) echo "unexpected package directory: $package_name" >&2; exit 1 ;;
+          esac
+        done
+
   test:
     desc: Run all tests
     summary: |
