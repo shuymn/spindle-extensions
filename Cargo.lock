@@ -521,7 +521,7 @@ dependencies = [
 [[package]]
 name = "spindle-extension-sdk"
 version = "0.1.0"
-source = "git+https://github.com/shuymn/spindle?branch=main#f714ca28fd052790bd56cd826839cc283dbbf5fc"
+source = "git+https://github.com/shuymn/spindle?branch=main#6366c5844c9d6dd8ec695a95935318edd1e6d579"
 dependencies = [
  "serde",
  "serde_json",
