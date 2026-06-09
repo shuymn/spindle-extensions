@@ -49,7 +49,7 @@ sketchybar.workspace.clicked -> aerospace.workspace.focus
 
 ## Canonical surface
 
-Inspect runtime registration before writing route policy or downstream packager config:
+Inspect runtime registration before writing downstream packager config:
 
 ```sh
 spindle-workspace-indicator register | jq .
@@ -65,7 +65,7 @@ Key names from this extension:
 | action | `workspace-indicator.workspaces.render` |
 | action | `workspace-indicator.status.render` |
 
-Route policy must reference `workspace-indicator.sketchybar.message.requested`, not legacy names such as `workspace-indicator.rendered`.
+Routes should use `workspace-indicator.sketchybar.message.requested`, not legacy names such as `workspace-indicator.rendered`.
 
 Obsolete scheduler generations are suppressed before invoking
 `aerospace.workspace.snapshot`, so obsolete workspace intents do not read
