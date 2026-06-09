@@ -418,7 +418,7 @@ mod tests {
     };
 
     use spindle_extension_sdk::{
-        ActionDescriptor, ContinuationContext, EventDescriptor, ExtensionContext,
+        ActionDescriptor, ContinuationContext, EventDescriptor, ExtensionContext, HostRequest,
     };
 
     use super::*;
@@ -455,6 +455,16 @@ mod tests {
                     9_999_999_999,
                 ))),
         )
+    }
+
+    #[test]
+    fn host_request_with_continuation_parses_core_json() -> Result<()> {
+        let json = r#"{"type":"invoke","invocation":{"action":"workspace-indicator.workspaces.schedule","args":{},"event":null,"extension":null,"continuation":{"id":"continuation-1","socket":"/tmp/spindle.sock","expires_unix_ms":1737000000123}}}"#;
+
+        let parsed: HostRequest = serde_json::from_str(json)?;
+
+        assert!(matches!(parsed, HostRequest::Invoke { .. }));
+        Ok(())
     }
 
     #[test]
